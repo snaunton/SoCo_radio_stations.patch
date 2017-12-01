@@ -1,0 +1,77 @@
+diff -Naur SoCo/AUTHORS.rst SoCo.new/AUTHORS.rst
+--- SoCo/AUTHORS.rst	2017-12-02 10:28:43.256004108 +1100
++++ SoCo.new/AUTHORS.rst	2017-12-02 10:29:55.559738685 +1100
+@@ -25,6 +25,7 @@
+ * David Harding
+ * Jeff Hinrichs
+ * Jeroen Idserda
++* Simon Naunton
+ * Todd Neal
+ * nixscripter
+ * Kenneth Nielsen
+diff -Naur SoCo/soco/core.py SoCo.new/soco/core.py
+--- SoCo/soco/core.py	2017-12-02 10:28:43.264004079 +1100
++++ SoCo.new/soco/core.py	2017-12-02 10:36:52.938202110 +1100
+@@ -1613,6 +1613,8 @@
+                     if favorite_type == RADIO_SHOWS else
+                     '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
+                 favorite = {}
++                if favorite_type == RADIO_STATIONS:
++                     favorite["id"] = int(str(item.attrib['id']).split('/')[2])
+                 favorite['title'] = item.findtext(
+                     '{http://purl.org/dc/elements/1.1/}title')
+                 favorite['uri'] = item.findtext(
+@@ -2152,6 +2154,53 @@
+         raise ValueError('No match on "{0}" for value "{1}"'.format(attr_name,
+                                                                     match))
+ 
++    def add_radio_station(self, title, uri):
++        """Adds a Radio Station to a Sonos.
++
++        Args:
++            title (string): Radio station title
++            uri (string): Radio station uri
++
++        Returns:
++            int: id of the radio station
++
++        Raises:
++            SoCoUPnPException: .error_code = 803 if a radio station with title 
++                already exists
++
++        """
++
++        meta_template = '<DIDL-Lite  xmlns:dc="http://purl.org/dc/elements/1.1/" '\
++            'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '\
++            'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'\
++            '<item id="" restricted="false">'\
++            '<dc:title>{title}</dc:title>'\
++            '<res>x-rincon-mp3radio://{uri}</res>'\
++            '</item></DIDL-Lite>'
++
++        meta = meta_template.format(title=title, uri=uri)
++
++        response = self.contentDirectory.CreateObject([
++            ('ContainerID', 'R:0/0'),
++            ('Elements', meta)
++        ])
++
++        return int(str(response['ObjectID'].split('/')[2]))
++
++    def remove_radio_station(self, id):
++        """Remove a Radio Station from a Sonos.
++
++        Args:
++            id (int): id of the radio station to remove
++
++        Returns:
++            bool: True if succesful, False otherwise
++
++        Raises:
++            SoCoUPnPException: If a radio station with specified id does not exist
++
++        """
++        return self.contentDirectory.DestroyObject([('ObjectID', 'R:0/0/%d' % int(id))])
+ 
+ # definition section
+ 
